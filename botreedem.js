@@ -17,50 +17,66 @@ const sheets = google.sheets({ version: "v4", auth });
 
 bot.command("redeem", async (ctx) => {
   const voucherCode = ctx.message.text.split(" ")[1];
+  console.log(voucherCode);
   if (!voucherCode) {
     ctx.reply("Mohon masukkan kode voucher yang valid!");
     return;
   }
   const message = await checkVoucher(voucherCode);
   ctx.reply(message);
-
+  
   if (message.includes("#echovoucherredeem")) {
     await bot.on(["message", "edited_message"], async (ctx) => {
       try {
+        const paramVoucher = "#" + voucherCode;
         const message = ctx.message || ctx.editedMessage;
         const text = message.text || message.caption || "";
-        if (text.includes("#echovoucherredeem")) {
+        if (text.includes("#echovoucherredeem"&&paramVoucher)) {
           await ctx.telegram.forwardMessage(
             TARGET_ADMIN_CHAT_ID,
             message.chat.id,
             message.message_id
           );
-          ctx.reply(
-            "Terimakasih :)\n Selamat Kode Yang Anda Reedem Adalah Benar\n💎💎💎💎\nDiamond Segera Kami Kirim✔✔\n💎💎💎💎"
-          );
-
-          //Update Spreadsheet Status 
-          async () => {
+          ctx.reply("Terimakasih :)\n Selamat Kode Yang Anda Reedem Adalah Benar\n💎💎💎💎\nDiamond Segera Kami Kirim✔✔\n💎💎💎💎")
+          .then(async () => {
             try {
               const res = await sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: RANGE,
               });
-              console.log(res);
+              
               const rows = res.data.values;
               if (rows) {
+                let found = false;
                 for (let row of rows) {
-                  console.log(row);
-                  const [voucher, status, value] = row;
-                  const update = ;
+                  if (row.length < 3) continue;
+                  const [voucher, status, value]= row;
+                  if (voucher === voucherCode) {
+                    console.log("Voucher ditemukan!");
+                    console.log("Status:", status);
+                    found = true;
+                    return {
+                      status: status,
+                      value: value
+                    };
+                  }
                 }
+                
+                if (!found) {
+                  console.log('Voucher tidak ditemukan');
+                  return null;
+                }
+              } else {
+                console.log('Tidak ada data di spreadsheet');
+                return null;
               }
-              return;
             } catch (err) {
-              console.error("The API returned an error:", err);
+              console.error("API mengembalikan error:", err);
               return "Terjadi kesalahan saat mengecek voucher!";
             }
-          };
+          });
+        } else {
+          ctx.reply('Terjadi Kesalahan Mohon Cek Kembali Format')
         }
       } catch (error) {
         console.error("Error:", error);
@@ -77,13 +93,16 @@ async function checkVoucher(voucherCode) {
       spreadsheetId: SPREADSHEET_ID,
       range: RANGE,
     });
-    console.log(res);
+    // cek auth
+    // console.log(res);
     const rows = res.data.values;
     if (rows) {
       for (let row of rows) {
-        console.log(row);
+        // cek value rows
+        // console.log(row);
         const [voucher, status, value] = row;
         if (voucher === voucherCode) {
+          console.log(status);
           return status === "used"
             ? "Voucher sudah digunakan!"
             : "Voucher valid\nVoucher : " +
@@ -98,6 +117,10 @@ async function checkVoucher(voucherCode) {
     return "Terjadi kesalahan saat mengecek voucher!";
   }
 }
+
+bot.command('test', (ctx)=>{
+  console.log('bot berhasil ditesting')
+})
 
 // const check = checkVoucher('test123');
 

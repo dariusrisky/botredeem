@@ -17,15 +17,16 @@ const req = async () => {
       spreadsheetId: SPREADSHEET_ID,
       range: RANGE,
     });
+    console.log(res);
     const rows = res.data.values;
     if (rows) {
       // Buat array untuk menyimpan pembaruan
       const updatePromises = rows.map(async (row, index) => {
         const [voucher, status, value] = row;
-        console.log(`Status voucher ${voucher}: ${status}`);
+        // console.log(`Status voucher ${voucher}: ${status}`);
         
-        if (status === 'unused') {
           // Misalnya, kita ingin mengganti status menjadi 'used' pada kolom B (status)
+        if (status === 'unused') {
           const updatedRow = [...row]; // Menyalin row yang ada
           updatedRow[1] = 'used'; // Mengubah status menjadi 'used'
 
@@ -55,3 +56,35 @@ const req = async () => {
 };
 
 req();
+
+
+async () => {
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: RANGE,
+    });
+    // cek auth
+    // console.log(res);
+    const rows = res.data.values;
+    if (rows) {
+      for (let row of rows) {
+        // console.log(row);
+        const [voucher, status, value] = row;
+        if(voucher === voucherCode){
+          console.log(status);
+          // return status
+        }else{
+          console.log('error')
+        }
+      }
+    }
+    return;
+  } catch (err) {
+    console.error("The API returned an error:", err);
+    return "Terjadi kesalahan saat mengecek voucher!";
+  }
+}
+
+
+
