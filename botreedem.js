@@ -48,17 +48,48 @@ bot.command("redeem", async (ctx) => {
               const rows = res.data.values;
               if (rows) {
                 let found = false;
-                for (let row of rows) {
+                for (let i = 0; i < rows.length; i++) {
+                  const row = rows[i];
                   if (row.length < 3) continue;
-                  const [voucher, status, value]= row;
+                  
+                  const [voucher, status, value] = row;
                   if (voucher === voucherCode) {
+                    found = true;
+                    // Cek Status
                     console.log("Voucher ditemukan!");
                     console.log("Status:", status);
-                    found = true;
-                    return {
-                      status: status,
-                      value: value
-                    };
+                    console.log("Value:", value);
+                    
+                    if (status === 'unused') {
+                      // Hitung posisi cell untuk diupdate (A1 notation)
+                      const updateRow = i + 2;
+                      const updateRange = `Sheet1!B${updateRow}`;
+                      
+                      try {
+                        await sheets.spreadsheets.values.update({
+                          spreadsheetId: SPREADSHEET_ID,
+                          range: updateRange,
+                          valueInputOption: "RAW",
+                          resource: {
+                            values: [["used"]]
+                          }
+                        });
+                        // console.log("Status berhasil diubah dari 'unused' menjadi 'used'");
+                        return {
+                          status: "used",
+                          value: value
+                        };
+                      } catch (updateErr) {
+                        console.error("Error saat update spreadsheet:", updateErr);
+                      }
+                    } else {
+                      console.log("Voucher sudah digunakan sebelumnya!");
+                      return {
+                        status: status,
+                        value: value
+                      };
+                    }
+                    break;
                   }
                 }
                 
@@ -82,8 +113,6 @@ bot.command("redeem", async (ctx) => {
         console.error("Error:", error);
       }
     });
-  } else {
-    ctx.reply("Masukan Dengan Format Yang Benar ");
   }
 });
 
